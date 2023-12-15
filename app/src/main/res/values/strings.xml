@@ -27,4 +27,7 @@
     <string name="yay">YEAH!!!</string>
     <string name="nay">Ohh, bummer</string>
     <string name="appwidget_title">Generate a new number</string>
+
+    <string name="number">number</string>
+    <string name="btn_pressed">btn_pressed</string>
 </resources>
