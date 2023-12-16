@@ -19,7 +19,7 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:text="@string/is_prime_question"
-            android:textSize="48sp" />
+            android:textSize="30sp" />
 
         <TextView
             android:id="@+id/appwidget_text"
