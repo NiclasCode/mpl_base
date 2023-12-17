@@ -31,14 +31,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setUI() {
+        // connect controller with ui
         randomNumberTv = findViewById(R.id.main_random_number)
         randomizeBtn = findViewById(R.id.main_btn_randomize)
         trueBtn = findViewById(R.id.main_btn_true)
         falseBtn = findViewById(R.id.main_btn_false)
 
+        // set number to number from intent, if no intent (f.ex. at start of app) set number to 0
         randomNumberTv.text = intent.getIntExtra(RANDOM_NUMBER, 0).toString()
+        // update ALL widgets with the intent number
         updateWidgets(intent.getIntExtra(RANDOM_NUMBER, 0))
 
+        // set true button listener
         trueBtn.setOnClickListener {
             val number = randomNumberTv.text.toString().toInt()
             val isPrime = CalcUtil.checkIfPrime(number)
@@ -50,14 +54,14 @@ class MainActivity : AppCompatActivity() {
             } else {
                 val intent = Intent(this, FalseActivity::class.java)
                 intent.putExtra(
-                    getString(R.string.is_prime_question),
-                    getString(R.string.is_not_text)
+                    getString(R.string.is_prime_question), getString(R.string.is_not_text)
                 )
             }
             intent.putExtra(RANDOM_NUMBER, number)
             startActivity(intent)
         }
 
+        // set false button listener
         falseBtn.setOnClickListener {
             val number = randomNumberTv.text.toString().toInt()
             val isPrime = CalcUtil.checkIfPrime(number)
@@ -65,8 +69,7 @@ class MainActivity : AppCompatActivity() {
             if (!isPrime) {
                 val intent = Intent(this, TrueActivity::class.java)
                 intent.putExtra(
-                    getString(R.string.is_prime_question),
-                    getString(R.string.is_not_text)
+                    getString(R.string.is_prime_question), getString(R.string.is_not_text)
                 )
             } else {
                 val intent = Intent(this, FalseActivity::class.java)
@@ -81,19 +84,31 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * calculates a new random number and sets text on mainActivity and updates all widgets to that number
+     */
     private fun updateRandomNumber() {
         val randomNumber = CalcUtil.rng()
         randomNumberTv.text = randomNumber.toString()
         updateWidgets(randomNumber)
     }
-    private fun updateWidgets(randomNumber: Int){
+
+    /**
+     * updates all widget with the input number
+     * @param randomNumber number that should be shown on all widgets
+     */
+    private fun updateWidgets(randomNumber: Int) {
+        // gets all active widget ids and loops over them
         for (id in AppWidgetManager.getInstance(this).getAppWidgetIds(
             ComponentName(this, MyAppWidget::class.java)
         )) {
+            // intent for widget with widget id and random number
             val intent = Intent(this, MyAppWidget::class.java)
             intent.putExtra(APP_WIDGET_ID, id)
             intent.putExtra(RANDOM_NUMBER, randomNumber)
+            // sync action to update the widget
             intent.action = WidgetActionEnum.SYNC.toString()
+            // send to the widget
             sendBroadcast(intent)
         }
     }

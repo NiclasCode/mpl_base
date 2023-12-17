@@ -25,6 +25,7 @@ class FalseActivity : AppCompatActivity() {
 
         text.text = String.format(getString(R.string.answer_text), number, primetext)
 
+        // set back button to launch mainActivity again
         button.setOnClickListener {
             val backIntent = Intent(this, MainActivity::class.java)
             backIntent.putExtra(RANDOM_NUMBER, CalcUtil.rng())

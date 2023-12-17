@@ -20,8 +20,11 @@ class MyAppWidget : AppWidgetProvider() {
         val appWidgetId = intent!!.getIntExtra(APP_WIDGET_ID, 0)
 
         when (intent.action) {
+            // action to refresh number on the widget
             WidgetActionEnum.REFRESH.toString() -> {
+                // calc new number
                 val number = CalcUtil.rng()
+                // update widget
                 updateAppWidget(
                     context!!,
                     AppWidgetManager.getInstance(context),
@@ -29,13 +32,15 @@ class MyAppWidget : AppWidgetProvider() {
                     number
                 )
             }
-
+            // action to send notification whether the answer was right or wrong
             WidgetActionEnum.NOTIFY.toString() -> {
                 notify(context!!, intent, appWidgetId)
             }
-
+            // action to sync the widget to the number of the incoming intent
             WidgetActionEnum.SYNC.toString() -> {
+                // get number from intent
                 val number = intent.getIntExtra(RANDOM_NUMBER, 0)
+                // update widget
                 updateAppWidget(
                     context!!,
                     AppWidgetManager.getInstance(context),
@@ -67,18 +72,19 @@ internal fun updateAppWidget(
 ) {
     // Construct the RemoteViews object
     val views = RemoteViews(context.packageName, R.layout.my_app_widget)
+    // set texts of the Textviews
     views.setTextViewText(R.id.appwidget_title, context.getString(R.string.is_prime_question))
     views.setTextViewText(R.id.appwidget_text, number.toString())
 
-
+    // set OnClickPending Intents of the buttons and the title
     views.setOnClickPendingIntent(R.id.appwidget_btn, refreshRandomNumber(context, appWidgetId))
     views.setOnClickPendingIntent(
         R.id.widget_btn_true,
-        selectTrue(context, appWidgetId, number, true)
+        selectButton(context, appWidgetId, number, true)
     )
     views.setOnClickPendingIntent(
         R.id.widget_btn_false,
-        selectFalse(context, appWidgetId, number, false)
+        selectButton(context, appWidgetId, number, false)
     )
     views.setOnClickPendingIntent(R.id.appwidget_title, startMainActivity(context, number))
 
@@ -86,13 +92,25 @@ internal fun updateAppWidget(
     appWidgetManager.updateAppWidget(appWidgetId, views)
 }
 
+/**
+ * function that returns a pending intent, that starts the main activity and sends the current random number to it
+ * @param context Context
+ * @param number current number of the widget that should be shown on start of main activity as well
+ * @return PendingIntent that launches the main activity and has Extra Random Number
+ */
 internal fun startMainActivity(context: Context, number: Int): PendingIntent {
     val intent = Intent(context, MainActivity::class.java)
     intent.putExtra(RANDOM_NUMBER, number)
     return PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
 }
 
-
+/**
+ * function that returns a pending intent
+ * the intent action is to refresh the widget
+ * @param context Context
+ * @param appWidgetId Id of the widget to be refreshed
+ * @return PendingIntent that refreshes the widget
+ */
 internal fun refreshRandomNumber(context: Context, appWidgetId: Int): PendingIntent {
     val intent = Intent(context, MyAppWidget::class.java)
     intent.putExtra(APP_WIDGET_ID, appWidgetId)
@@ -106,12 +124,23 @@ internal fun refreshRandomNumber(context: Context, appWidgetId: Int): PendingInt
     )
 }
 
-internal fun selectTrue(
+/**
+ * function that returns a pending intent
+ * the intent action is to send a notification whether the answer was right or wrong
+ * @param context Context
+ * @param appWidgetId Id of the widget to be refreshed
+ * @param number number to be checked for prime
+ * @param btnClicked Boolean whether button for true or false to is_prime_question is clicked
+ * @return PendingIntent that send a notification containing the correctness of the answer
+ */
+internal fun selectButton(
     context: Context,
     appWidgetId: Int,
     number: Int,
     btnClicked: Boolean
 ): PendingIntent {
+    // request Codes for true/false button have to be different -> one is even the other is odd
+    val requestCode = if (btnClicked) appWidgetId * 2 else appWidgetId * 2 + 1
     val intent = Intent(context, MyAppWidget::class.java)
     intent.putExtra(APP_WIDGET_ID, appWidgetId)
     intent.putExtra(RANDOM_NUMBER, number)
@@ -120,50 +149,40 @@ internal fun selectTrue(
     intent.action = WidgetActionEnum.NOTIFY.toString()
     return PendingIntent.getBroadcast(
         context,
-        appWidgetId * 2,
+        requestCode,
         intent,
         PendingIntent.FLAG_UPDATE_CURRENT
     )
 }
 
-internal fun selectFalse(
-    context: Context,
-    appWidgetId: Int,
-    number: Int,
-    btnClicked: Boolean
-): PendingIntent {
-    val intent = Intent(context, MyAppWidget::class.java)
-    intent.putExtra(APP_WIDGET_ID, appWidgetId)
-    intent.putExtra(RANDOM_NUMBER, number)
-    intent.putExtra(context.getString(R.string.btn_pressed), btnClicked)
-    intent.flags = Intent.FLAG_RECEIVER_FOREGROUND
-    intent.action = WidgetActionEnum.NOTIFY.toString()
-    return PendingIntent.getBroadcast(
-        context,
-        appWidgetId * 2 + 1,
-        intent,
-        PendingIntent.FLAG_UPDATE_CURRENT
-    )
-}
-
+/**
+ * sends a notification containing the correctness of the answer and the solution
+ * @param context Context
+ * @param intent current intent containing the inputted answer
+ * @param appWidgetId current app Widget Id
+ */
 internal fun notify(context: Context, intent: Intent, appWidgetId: Int) {
+    // get number
     val number = intent.getIntExtra(RANDOM_NUMBER, 0)
+    // check if prime
     val isPrime = CalcUtil.checkIfPrime(
         intent.getIntExtra(
             RANDOM_NUMBER,
             0
         )
     )
+    // get pressed button
+    val btnPressed =
+        intent.getBooleanExtra(context.getString(R.string.btn_pressed), false)
+    // check whether answer is correct
+    val correctPress = (btnPressed == isPrime)
+
     val title: String
     val text: String
     val icon: Int
     val notifyIntent: Intent
 
-    val btnPressed =
-        intent.getBooleanExtra(context.getString(R.string.btn_pressed), false)
-
-    val correctPress = (btnPressed == isPrime)
-
+    // set values according to correctness
     if (correctPress) {
         title = context.getString(R.string.yay)
         text = String.format(
@@ -189,7 +208,7 @@ internal fun notify(context: Context, intent: Intent, appWidgetId: Int) {
     }
     notifyIntent.putExtra(RANDOM_NUMBER, number)
 
-    NotificationUtil.createNotificationChannel(context)
+    // send notification
     NotificationUtil.sendNotification(context, title, text, icon, notifyIntent)
 
     updateAppWidget(
